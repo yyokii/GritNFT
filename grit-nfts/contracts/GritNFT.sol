@@ -6,4 +6,8 @@ contract GritNFT {
   constructor() {
     console.log('This is my NFT contract.');
   }
+
+  function makeNFT() public {
+    console.log('I made an NFT!');
+  }
 }
