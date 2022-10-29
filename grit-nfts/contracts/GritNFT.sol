@@ -2,14 +2,15 @@
 pragma solidity ^0.8.17;
 
 import '@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol';
-import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
-import '@openzeppelin/contracts/utils/Counters.sol';
 import '@openzeppelin/contracts/utils/Counters.sol';
 import 'hardhat/console.sol';
 import {Base64} from './libraries/Base64.sol';
 
-// ERC721URIStorage is suitable?
-contract GritNFT is ERC721URIStorage, ERC721Enumerable {
+/*
+checkStatus: 情報確認して特定期間内なら変更可能であると通知するやつ
+
+*/
+contract GritNFT is ERC721URIStorage {
   using Counters for Counters.Counter;
 
   Counters.Counter private _tokenIds;
@@ -21,16 +22,6 @@ contract GritNFT is ERC721URIStorage, ERC721Enumerable {
     console.log('This is GritNFT contract.');
   }
 
-  function getTokenIds(address _owner) public view returns (uint256[] memory) {
-    uint256[] memory _tokensOfOwner = new uint256[](balanceOf(_owner));
-    uint256 i;
-
-    for (i = 0; i < balanceOf(_owner); i++) {
-      _tokensOfOwner[i] = tokenOfOwnerByIndex(_owner, i);
-    }
-    return (_tokensOfOwner);
-  }
-
   function makeNFT() public {
     uint256 newItemId = _tokenIds.current();
 
@@ -40,8 +31,7 @@ contract GritNFT is ERC721URIStorage, ERC721Enumerable {
         string(
           abi.encodePacked(
             '{"name": "',
-            // NFTのタイトルを生成される言葉（例: GrandCuteBird）に設定します。
-            'demo',
+            'this is demo',
             '", "description": "A highly acclaimed collection of squares.", "image": "data:image/svg+xml;base64,',
             Base64.encode(bytes(tokenSvg)),
             '"}'
@@ -66,35 +56,5 @@ contract GritNFT is ERC721URIStorage, ERC721Enumerable {
   */
   function updateNFT(string memory targetTokenURI) public {
     console.log('I made an NFT!');
-  }
-
-  function _beforeTokenTransfer(
-    address from,
-    address to,
-    uint256 tokenId
-  ) internal override(ERC721, ERC721Enumerable) {
-    super._beforeTokenTransfer(from, to, tokenId);
-  }
-
-  function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-    super._burn(tokenId);
-  }
-
-  function tokenURI(uint256 tokenId)
-    public
-    view
-    override(ERC721, ERC721URIStorage)
-    returns (string memory)
-  {
-    return super.tokenURI(tokenId);
-  }
-
-  function supportsInterface(bytes4 interfaceId)
-    public
-    view
-    override(ERC721, ERC721Enumerable)
-    returns (bool)
-  {
-    return super.supportsInterface(interfaceId);
   }
 }
