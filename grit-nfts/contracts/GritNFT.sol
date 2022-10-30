@@ -105,15 +105,36 @@ contract GritNFT is ERC721 {
     return result;
   }
 
-  /*
-  read current nft
-  → check metadata （これはマッピング情報から取れる）
-  → update metadata 
-  */
-  function updateNFTOf(uint256 tokenId, string memory imageURI) public {
+  function updateNFTOf(uint256 tokenId, string memory imageURI) public payable {
     require(isOwnerOf(tokenId), 'You are not owner of this NFT.');
 
-    string memory tokenUri = tokenURI(tokenId);
-    console.log('tokenUri: %s', tokenUri);
+    if (isExpiredOf(tokenId)) {
+      console.log('This NFT is before the due date.');
+      updateNFTImageURIOf(tokenId, imageURI);
+    } else {
+      console.log('This NFT is after the due date.');
+      updateNFTAfterDueDate(tokenId, imageURI);
+    }
+  }
+
+  function updateNFTAfterDueDate(uint256 tokenId, string memory imageURI) private payable {
+    require(msg.value >= 0.01 ether, 'You need to pay at least 0.01 ether.');
+    console.log('Balance: %s', address(this).balance);
+
+    updateNFTImageURIOf(tokenId, imageURI);
+  }
+
+  function updateNFTImageURIOf(uint256 tokenId, string memory imageURI) private payable {
+      _requireMinted(tokenId);
+      NftAttributes memory nft = _grit3Nfts[tokenId];
+      nft.imageURL = imageURI;
+      _grit3Nfts[tokenId] = nft;
+  }
+
+  function isExpiredOf(uint256 tokenId) public view returns (bool) {
+    NftAttributes memory nft = _grit3Nfts[tokenId];
+    bool result = nft.dueDate < block.timestamp;
+    console.log('isExpiredOf: %s', result);
+    return result;
   }
 }
