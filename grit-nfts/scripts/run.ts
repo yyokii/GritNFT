@@ -1,8 +1,10 @@
 async function main() {
   const nftContract = await deploy('GritNFT')
 
-  let txn = await nftContract.makeNFT()
+  let txn = await nftContract.makeNFT("demo name", "demo description", "demo image url", 123)
   await txn.wait()
+
+  await nftContract.tokenURI(0)
 }
 
 async function deploy(name: String): Promise<any> {
