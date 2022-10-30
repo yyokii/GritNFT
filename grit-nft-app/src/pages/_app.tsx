@@ -1,3 +1,4 @@
+import '../lib/firebase'
 import { ChakraProvider } from '@chakra-ui/react'
 import '../styles/globals.css'
 
