@@ -7,12 +7,6 @@ import '@openzeppelin/contracts/utils/Strings.sol';
 import 'hardhat/console.sol';
 import {Base64} from './libraries/Base64.sol';
 
-/*
-checkStatus: 
-情報確認して特定期間内なら変更可能であると通知するやつ
-特定のアドレス？uriから引いてそのメタデータを取得して、チェック結果をイベントを送信
-
-*/
 contract GritNFT is ERC721 {
   struct NftAttributes {
     string name;
@@ -25,6 +19,8 @@ contract GritNFT is ERC721 {
   mapping(uint256 => NftAttributes) private _grit3Nfts;
 
   using Counters for Counters.Counter;
+
+  event NewNFTMinted(address sender, uint256 tokenId);
 
   Counters.Counter private _tokenIds;
 
@@ -58,6 +54,8 @@ contract GritNFT is ERC721 {
     _grit3Nfts[newTokenId] = attributes;
 
     _tokenIds.increment();
+
+    emit NewNFTMinted(msg.sender, newTokenId);
   }
 
   function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
@@ -113,18 +111,16 @@ contract GritNFT is ERC721 {
       updateNFTImageURIOf(tokenId, imageURI);
     } else {
       console.log('This NFT is after the due date.');
-      updateNFTAfterDueDate(tokenId, imageURI);
+      if (msg.value >= 0.01 ether) {
+        console.log('This NFT is after the due date.');
+        updateNFTImageURIOf(tokenId, imageURI);
+      } else {
+        console.log('You need to pay 0.01 ether.');
+      }
     }
   }
 
-  function updateNFTAfterDueDate(uint256 tokenId, string memory imageURI) private payable {
-    require(msg.value >= 0.01 ether, 'You need to pay at least 0.01 ether.');
-    console.log('Balance: %s', address(this).balance);
-
-    updateNFTImageURIOf(tokenId, imageURI);
-  }
-
-  function updateNFTImageURIOf(uint256 tokenId, string memory imageURI) private payable {
+  function updateNFTImageURIOf(uint256 tokenId, string memory imageURI) private {
       _requireMinted(tokenId);
       NftAttributes memory nft = _grit3Nfts[tokenId];
       nft.imageURL = imageURI;
