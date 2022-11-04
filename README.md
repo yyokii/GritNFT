@@ -2,12 +2,38 @@
 
 ## Develop
 
+### Deploy to local network
+
+in grit-nfts directory
+
+```.sh
+npx hardhat node
+```
+
+and in another terminal
+
+```.sh
+npx hardhat run scripts/deploy.js --network localhost
+```
+
+and update the contract address in App.
+
+### Deploy to test network(Goerli)
+
+in grit-nfts directory
+
+```.sh
+npx hardhat run scripts/deploy.js --network goerli
+```
+
+and update the contract address in App.
+
 ### Start app devlop environment
 
 in grit-nft-app directory
 
 ```.sh
-$ yarn dev
+yarn dev
 ```
 
 ### Update Contract
@@ -17,7 +43,7 @@ $ yarn dev
 in grit-nfts directory
 
 ```.sh
-$ npm run local
+npm run local
 ```
 
 2. Update contract address in grit-nft-app

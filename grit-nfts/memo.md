@@ -34,3 +34,12 @@
 - コントラクトの処理はどんな時に競合状態になる？
 - .wait() は書き込み処理のときだけ待つために呼べばいい？
 - prettier の onSave が効かない
+
+## error
+
+app から mit 実行時に書きエラーがたまに出る
+
+```
+Error: block with cid bafybeiggpov7l3bokdcw4f66nvfjxiyu4rcocki6rg7ukshz4nn3lebdni no found
+
+```
