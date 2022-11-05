@@ -76,7 +76,7 @@ contract GritNFT is ERC721 {
             nft.description,
             '",',
             '"image": ',
-            '"',
+            '"ipfs://',
             nft.imageURL,
             '",',
             '"attributes": [',
@@ -93,7 +93,8 @@ contract GritNFT is ERC721 {
       )
     );
     console.log('json: %s', json);
-    string memory tokenUri = string(abi.encodePacked('data:application/json;base64,', json));
+    string memory output = string(abi.encodePacked('data:application/json;base64,', json));
+    return output;
   }
 
   // TODO: modifierにしてもいいかもしれない

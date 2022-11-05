@@ -13,7 +13,7 @@ npx hardhat node
 and in another terminal
 
 ```.sh
-npx hardhat run scripts/deploy.js --network localhost
+npx hardhat run scripts/deploy.ts --network localhost
 ```
 
 and update the contract address in App.
@@ -23,7 +23,7 @@ and update the contract address in App.
 in grit-nfts directory
 
 ```.sh
-npx hardhat run scripts/deploy.js --network goerli
+npx hardhat run scripts/deploy.ts --network goerli
 ```
 
 and update the contract address in App.

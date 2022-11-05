@@ -1,31 +1,40 @@
-import { Text, VStack } from '@chakra-ui/react'
+import { Box, Button, Input, Text, VStack } from '@chakra-ui/react'
 import FeaturesList from '../components/FeaturesList'
 import Hero from '../components/Hero'
 import Layout from '../components/Layout'
 import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
 import NormalButton from '../components/common/NormalButton'
-import { Web3Storage } from 'web3.storage'
+import { Web3Storage, CIDString } from 'web3.storage'
 import GritNFT from '../grit-nfts.json'
+import html2canvas from 'html2canvas'
 
 interface Window {
   ethereum?: ethers.providers.ExternalProvider
 }
 
+// class GritNFTMetadata {
+//   name: string
+//   description: string
+//   imageCID: string
+// }
+
+const CONTRACT_ADDRESS = '0x7100F290D619739D92559112337389E08C570736'
+
 export default function Home() {
   const [account, setAccount] = useState<string>(null)
 
   // NFT metadata
-  const [nftName, setNftName] = useState<string>(null)
-  const [nftDescription, setNftDescription] = useState<string>(null)
-  const [nftDueDate, setNftDueDate] = useState<number>(null)
+  const [nftTitle, setnftTitle] = useState<string>('')
+  const [nftDescription, setNftDescription] = useState<string>('')
+  const [nftDueDate, setNftDueDate] = useState<number>(0)
 
   const [isSending, setIsSending] = useState(false)
 
   useEffect(() => {
     ;(async () => {
       await checkIfWalletIsConnected()
-      await checkNetwork()
+      // await checkNetwork()
     })()
   }, [])
 
@@ -44,7 +53,7 @@ export default function Home() {
       const account = accounts[0]
       console.log('Found an authorized account:', account)
       setAccount(account)
-      // setupEventListener()
+      setupEventListener()
     } else {
       console.log('No authorized account found')
     }
@@ -75,7 +84,47 @@ export default function Home() {
       })
       console.log('Connected', accounts[0])
       setAccount(accounts[0])
-      // setupEventListener()
+      setIsSending(false)
+      setupEventListener()
+    } catch (error) {
+      setIsSending(false)
+      console.log(error)
+    }
+  }
+
+  const setupEventListener = async () => {
+    try {
+      const { ethereum } = window as Window
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum)
+        const signer = provider.getSigner()
+        const connectedContract = new ethers.Contract(CONTRACT_ADDRESS, GritNFT.abi, signer)
+
+        connectedContract.on('NewNFTMinted', (from, tokenId) => {
+          console.log(from, tokenId.toNumber())
+          alert(
+            `NFTが送信されました!\nNFT へのリンクはこちらです: https://testnets.opensea.io/assets/${CONTRACT_ADDRESS}/${tokenId.toNumber()}\nOpenSeaに表示されるまで最大で10分かかることがあります。`,
+          )
+        })
+        console.log('Setup event listener')
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  const makeNFT = async () => {
+    setIsSending(true)
+    try {
+      console.log('start mint NFT')
+      console.log('nftTitle', nftTitle)
+      console.log('nftDescription', nftDescription)
+      console.log('nftDueDate', nftDueDate)
+      const imageFile = await captureImage()
+      const imageCID = await uploadToWeb3Storage(imageFile)
+      await requestContractToMint(imageCID)
+      // TODO: save NFT metadata to DB
+      console.log('finish mint NFT')
       setIsSending(false)
     } catch (error) {
       setIsSending(false)
@@ -83,20 +132,16 @@ export default function Home() {
     }
   }
 
-  const requestContractToMint = async (ipfs: string) => {
-    // TODO: アドレスを修正する
+  const requestContractToMint = async (ipfs: CIDString) => {
     setIsSending(true)
     try {
       const { ethereum } = window as Window
       if (ethereum) {
         const provider = new ethers.providers.Web3Provider(ethereum)
         const signer = provider.getSigner()
-        const contract = new ethers.Contract(
-          '0x5FbDB2315678afecb367f032d93F642f64180aa3',
-          GritNFT.abi,
-          signer,
-        )
-        const transaction = await contract.makeNFT(nftName, nftDescription, ipfs, nftDueDate)
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, GritNFT.abi, signer)
+        // stateを参照ではなく、オブジェクトにしてそれを渡していく方が良さそう、値変わるので
+        const transaction = await contract.makeNFT(nftTitle, nftDescription, ipfs, nftDueDate)
         await transaction.wait()
         console.log(`${ipfs} minted!`)
         // TOOD: uplodat metadata to firestore for caching
@@ -110,22 +155,43 @@ export default function Home() {
     }
   }
 
-  const imageToNFT = async (e) => {
+  const uploadToWeb3Storage = async (file: File): Promise<CIDString> => {
     const client = new Web3Storage({ token: process.env.NEXT_PUBLIC_WEB3_STORAGE_API_KEY })
-    const image = e.target
-    console.log(image)
-
-    const rootCid = await client.put(image.files, {
+    const cid = await client.put([file], {
       name: 'nft grit image',
       maxRetries: 3,
     })
-    const res = await client.get(rootCid)
-    const files = await res.files()
+    console.log('Uploaded to web3 storage. CID:', cid)
+    // const res = await client.get(rootCid)
+    // const files = await res.files()
+    // console.log('Uploaded file:', files[0])
+    return cid
+  }
 
-    // TODO: 先頭のファイルのみを取得でいい気がする
-    for (const file of files) {
-      console.log('file.cid:', file.cid)
-      requestContractToMint(file.cid)
+  const captureImage = async (): Promise<File> => {
+    const canvas = await html2canvas(document.getElementById('canvas'))
+    const image = canvas.toDataURL('image/png')
+    const blob: Blob = await fetch(image).then((r) => r.blob())
+
+    const currentTime = Date.now() / 1000
+    const file: File = new File([blob], `${currentTime}.png`, { type: 'image/png' })
+
+    return file
+  }
+
+  const demoUpload = async () => {
+    setIsSending(true)
+    try {
+      console.log('start demo upload')
+      const file = await captureImage()
+      const cid = await uploadToWeb3Storage(file)
+      console.log('finish demo upload')
+      console.log(cid)
+      setIsSending(false)
+    } catch (error) {
+      console.log('error demo upload')
+      setIsSending(false)
+      console.log(error)
     }
   }
 
@@ -140,6 +206,45 @@ export default function Home() {
         ) : (
           <NormalButton title='Connect wallet' isSending={isSending} onClick={connectWallet} />
         )}
+        <Box>
+          <VStack>
+            <Input
+              id='title'
+              placeholder='title'
+              value={nftTitle}
+              onChange={(e) => {
+                setnftTitle(e.target.value)
+              }}
+              required
+            />
+            <Input
+              id='description'
+              placeholder='description'
+              value={nftDescription}
+              onChange={(e) => {
+                setNftDescription(e.target.value)
+              }}
+              required
+            />
+            <Input
+              id='due date'
+              placeholder='Select Date'
+              size='md'
+              type='date'
+              onChange={(e) => {
+                const unixTime = new Date(e.target.value).getTime() / 1000
+                setNftDueDate(unixTime)
+              }}
+              required
+            />
+          </VStack>
+        </Box>
+        <Box id='canvas'>
+          <Text color={'red.500'} m={8}>
+            This is {nftTitle} NFT
+          </Text>
+        </Box>
+        <Button onClick={makeNFT}>Capture</Button>
       </VStack>
     </Layout>
   )
