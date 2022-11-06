@@ -21,7 +21,7 @@ export default function Hero() {
           </Text>
         </Heading>
         <Text color={'gray.500'} maxW={'3xl'}>
-          This is a service that creates NFT.
+          This is a service that creates Grit NFT.
         </Text>
       </Stack>
     </Container>

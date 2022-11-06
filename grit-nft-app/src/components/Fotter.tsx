@@ -72,9 +72,9 @@ export default function Footer() {
         justify={{ base: 'center', md: 'space-between' }}
         align={{ base: 'center', md: 'center' }}
       >
-        <Logo />
-        <Text>© 2022 Chakra Templates. All rights reserved</Text>
-        <Stack direction={'row'} spacing={6}>
+        <Text fontWeight={600}>Grit NFT</Text>
+        <Text>© 2022 yoki. All rights reserved</Text>
+        {/* <Stack direction={'row'} spacing={6}>
           <SocialButton label={'Twitter'} href={'#'}>
             <EmailIcon />
           </SocialButton>
@@ -84,7 +84,7 @@ export default function Footer() {
           <SocialButton label={'Instagram'} href={'#'}>
             <EmailIcon />
           </SocialButton>
-        </Stack>
+        </Stack> */}
       </Container>
     </Box>
   )

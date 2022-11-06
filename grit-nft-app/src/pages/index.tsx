@@ -1,4 +1,4 @@
-import { Box, Button, Image, Input, SimpleGrid, Text, VStack } from '@chakra-ui/react'
+import { Box, Center, Heading, Image, Input, SimpleGrid, Text, VStack } from '@chakra-ui/react'
 import FeaturesList from '../components/FeaturesList'
 import Hero from '../components/Hero'
 import Layout from '../components/Layout'
@@ -28,8 +28,6 @@ export default function Home() {
   const [isSending, setIsSending] = useState(false)
   const [gritNFTContract, setGritNFTContract] = useState<ethers.Contract>(null)
 
-  const newNFTMintedEventName = 'NewNFTMinted'
-
   // Effect
 
   useEffect(() => {
@@ -45,13 +43,17 @@ export default function Home() {
     })()
   }, [])
 
+  useEffect(() => {
+    fetchUserAllNFTs(account)
+  }, [account])
+
   // Methods
 
-  const checkIfWalletIsConnected = async (): Promise<boolean> => {
+  const checkIfWalletIsConnected = async (): Promise<string> => {
     const { ethereum } = window as Window
     if (!ethereum) {
       console.log('Make sure you have MetaMask!')
-      return false
+      return null
     } else {
       console.log('We have the ethereum object', ethereum)
     }
@@ -62,10 +64,10 @@ export default function Home() {
       const account = accounts[0]
       console.log('Found an authorized account:', account)
       setAccount(account)
-      return true
+      return account
     } else {
       console.log('No authorized account found')
-      return false
+      return null
     }
   }
 
@@ -132,7 +134,7 @@ export default function Home() {
       console.log('request metadata: ', requestMetadata)
       await requestContractToMint(requestMetadata)
       console.log('finish mint NFT')
-      fetchUserAllNFTs()
+      fetchUserAllNFTs(account)
 
       setIsSending(false)
     } catch (error) {
@@ -141,20 +143,26 @@ export default function Home() {
     }
   }
 
-  const fetchUserAllNFTs = async () => {
+  const fetchUserAllNFTs = async (accountAddress: string) => {
     setIsSending(true)
     try {
-      const tokenIDs = await gritNFTContract.getTokenIds(account)
+      const { ethereum } = window as Window
+      const provider = new ethers.providers.Web3Provider(ethereum)
+      const signer = provider.getSigner()
+      const gritNFTContract = new ethers.Contract(CONTRACT_ADDRESS, GritNFT.abi, signer)
+      const tokenIDs = await gritNFTContract.getTokenIds(accountAddress)
       console.log('getTokenIds', tokenIDs.length)
-      const metadatas = await gritNFTContract.getMetadatas(tokenIDs)
 
-      const nftMetadatas: NFTMetadata[] = []
-      for (let i = 0; i < tokenIDs.length; i++) {
-        const data = NFTMetadata.fromJSON(metadatas[i], tokenIDs[i])
-        nftMetadatas.push(data)
+      if (tokenIDs.length > 0) {
+        const metadatas = await gritNFTContract.getMetadatas(tokenIDs)
+        const nftMetadatas: NFTMetadata[] = []
+        for (let i = 0; i < tokenIDs.length; i++) {
+          const data = NFTMetadata.fromJSON(metadatas[i], tokenIDs[i])
+          nftMetadatas.push(data)
+        }
+        console.log('nftMetadatas', nftMetadatas)
+        setUserNFTs(nftMetadatas)
       }
-      console.log('nftMetadatas', nftMetadatas)
-      setUserNFTs(nftMetadatas)
       setIsSending(false)
     } catch (error) {
       setIsSending(false)
@@ -178,86 +186,107 @@ export default function Home() {
         console.log(`tokenID(${data.tokenID}) is achieved`)
       }
       setIsSending(false)
-      fetchUserAllNFTs()
+      fetchUserAllNFTs(account)
     } catch (error) {
       setIsSending(false)
       console.log(error)
     }
   }
 
-  const demo = async () => {
-    fetchUserAllNFTs()
-  }
+  const demo = async () => {}
 
   return (
     <Layout>
-      <VStack spacing={4} align='center'>
+      <VStack spacing={4} align='center' paddingY={8}>
         <Hero />
         <FeaturesList />
+        <Heading fontSize={'3xl'} pt={10}>
+          Try
+        </Heading>
         {/* アカウント情報 */}
-        {account ? (
-          <Text color={'green.500'}>Connected to {account}</Text>
-        ) : (
+        {account == null && (
           <NormalButton
-            title='Connect wallet'
+            title='ウォレットに接続しましょう'
             isSending={isSending}
             onClick={onClickConnectWallet}
           />
         )}
+        {/* NFT作成 */}
         <Box>
-          <VStack>
-            <Input
-              id='title'
-              placeholder='title'
-              value={nftName}
-              onChange={(e) => {
-                setnftName(e.target.value)
-              }}
-              required
-            />
-            <Input
-              id='description'
-              placeholder='description'
-              value={nftDescription}
-              onChange={(e) => {
-                setNftDescription(e.target.value)
-              }}
-              required
-            />
-            <Input
-              id='due date'
-              placeholder='Select Date'
-              size='md'
-              type='date'
-              onChange={(e) => {
-                const unixTime = new Date(e.target.value).getTime() / 1000
-                setNftDueDate(unixTime)
-              }}
-              required
-            />
+          <VStack spacing={10} align='stretch'>
+            <Box>
+              <Text fontWeight={600}>1. やることを入力しましょう</Text>
+              <Text color={'gray.600'}>（例）体重-5kg, 毎朝8時に起きる</Text>
+              <Input
+                id='title'
+                placeholder='やること'
+                value={nftName}
+                onChange={(e) => {
+                  setnftName(e.target.value)
+                }}
+                required
+              />
+              <Input
+                id='description'
+                placeholder='意気込みや、やることの詳細'
+                value={nftDescription}
+                onChange={(e) => {
+                  setNftDescription(e.target.value)
+                }}
+                required
+              />
+            </Box>
+
+            <Box>
+              <Text fontWeight={600}>2. いつまでにそれを達成したいですか？</Text>
+              <Input
+                id='due date'
+                placeholder='Select Date'
+                size='md'
+                type='date'
+                onChange={(e) => {
+                  const unixTime = new Date(e.target.value).getTime() / 1000
+                  setNftDueDate(unixTime)
+                }}
+                required
+              />
+            </Box>
+
+            <Box>
+              <Text fontWeight={600}>3. NFT化しよう！</Text>
+              <Center h='100%'>
+                <NormalButton title='Create NFT' isSending={isSending} onClick={makeNFT} />
+              </Center>
+            </Box>
           </VStack>
         </Box>
-        <Box>
-          <SimpleGrid columns={{ sm: 2, md: 3 }} spacing='40px'>
-            {userNFTs.map((data) => (
-              <Box key={data.tokenID}>
-                <Text>{data.dispyaStatus()}</Text>
-                <Image src={data.imageSVG} alt={data.name} />
-                <Text>{data.description}</Text>
-                <Text>{data.displayDueDate()}</Text>
-                {!data.isAchieved() && (
-                  <NormalButton
-                    title='Achieved!'
-                    isSending={isSending}
-                    onClick={async () => await onClickAchieve(data)}
-                  />
-                )}
-              </Box>
-            ))}
-          </SimpleGrid>
-        </Box>
-        <Button onClick={makeNFT}>Create NFT</Button>
-        <Button onClick={demo}>Demo</Button>
+        {/* ユーザーのNFT一覧 */}
+        {userNFTs.length > 0 && (
+          <Heading fontSize={'3xl'} pt={10}>
+            Your NFTs
+          </Heading>
+        )}
+        {userNFTs.length > 0 && (
+          <Box>
+            <SimpleGrid columns={{ sm: 2, md: 3 }} spacing='40px'>
+              {userNFTs.map((data) => (
+                <Box key={data.tokenID}>
+                  <Text>{data.dispyaStatus()}</Text>
+                  <Image src={data.imageSVG} alt={data.name} />
+                  <Text noOfLines={1}>{data.description}</Text>
+                  <Text>{data.displayDueDate()}</Text>
+                  {!data.isAchieved() && (
+                    <NormalButton
+                      title='Achieved!'
+                      isSending={isSending}
+                      onClick={async () => await onClickAchieve(data)}
+                    />
+                  )}
+                </Box>
+              ))}
+            </SimpleGrid>
+          </Box>
+        )}
       </VStack>
     </Layout>
   )

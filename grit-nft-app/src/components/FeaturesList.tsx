@@ -15,18 +15,8 @@ import { CheckIcon } from '@chakra-ui/icons'
 const features = [
   {
     id: 1,
-    title: 'aaaaa',
-    text: 'aaaaa',
-  },
-  {
-    id: 2,
-    title: 'bbbbb',
-    text: 'bbbbb',
-  },
-  {
-    id: 3,
-    title: 'ccccc',
-    text: 'ccccc',
+    title: 'これからやること、やりたいことをNFT化できるサイトです',
+    text: '設定した期限までに達成できれば安価（ガス代）のみでNFTを更新できますが、期限を超えると追加の支払いが必要になります。NFT化することでやる気を高めてみませんか？',
   },
 ]
 
@@ -38,7 +28,7 @@ export default function FeaturesList() {
       </Stack>
 
       <Container maxW={'6xl'} mt={10}>
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={10}>
+        <SimpleGrid columns={{ base: 1 }} spacing={10}>
           {features.map((feature) => (
             <HStack key={feature.id} align={'top'}>
               <Box color={'green.400'} px={2}>
