@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import '@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol';
+import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
 import '@openzeppelin/contracts/utils/Counters.sol';
 import '@openzeppelin/contracts/utils/Strings.sol';
 import 'hardhat/console.sol';
 import {Base64} from './libraries/Base64.sol';
 
-contract GritNFT is ERC721 {
+contract GritNFT is ERC721Enumerable {
   struct NftAttributes {
     string name;
-    string imageURL;
+    string imageCID;
     string description;
     uint256 createdAt;
     uint256 dueDate;
@@ -20,7 +20,7 @@ contract GritNFT is ERC721 {
 
   using Counters for Counters.Counter;
 
-  event NewNFTMinted(address sender, uint256 tokenId);
+  event NewNFTMinted(address sender, uint256 tokenId, string name, string description, string imageCID, uint256 createdAt, uint256 dueDate);
 
   Counters.Counter private _tokenIds;
 
@@ -34,7 +34,7 @@ contract GritNFT is ERC721 {
   function makeNFT(
     string memory name,
     string memory description,
-    string memory imageURI,
+    string memory imageCID,
     uint256 dueDate
   ) public {
     uint256 newTokenId = _tokenIds.current();
@@ -45,7 +45,7 @@ contract GritNFT is ERC721 {
 
     NftAttributes memory attributes = NftAttributes(
       name,
-      imageURI,
+      imageCID,
       description,
       createdAt,
       dueDate
@@ -55,7 +55,7 @@ contract GritNFT is ERC721 {
 
     _tokenIds.increment();
 
-    emit NewNFTMinted(msg.sender, newTokenId);
+    emit NewNFTMinted(msg.sender, newTokenId, name, description, imageCID, createdAt, dueDate);
   }
 
   function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
@@ -77,7 +77,7 @@ contract GritNFT is ERC721 {
             '",',
             '"image": ',
             '"ipfs://',
-            nft.imageURL,
+            nft.imageCID,
             '",',
             '"attributes": [',
             '{"display_type": "date", "trait_type": "created_at", "value": "',
@@ -97,34 +97,56 @@ contract GritNFT is ERC721 {
     return output;
   }
 
+  function getTokenIds(address owner) public view returns (uint[] memory) {
+    uint[] memory tokensOfOwner = new uint[](ERC721.balanceOf(owner));
+
+    uint i;    
+    for (i=0;i<ERC721.balanceOf(owner);i++){
+      tokensOfOwner[i] = ERC721Enumerable.tokenOfOwnerByIndex(owner, i);
+    }
+    return (tokensOfOwner);
+  }
+
+  function getMetadatas(uint[] memory tokenIds) public view returns (NftAttributes[] memory) {
+    // TODO: check if tokenIds are valid
+
+    NftAttributes[] memory datas = new NftAttributes[](tokenIds.length);
+
+    uint i;    
+    for (i=0;i<tokenIds.length;i++){
+      datas[i] = _grit3Nfts[tokenIds[i]];
+    }
+    return (datas);
+  }
+
   // TODO: modifierにしてもいいかもしれない
-  function isOwnerOf(uint256 tokenId) public view returns (bool) {
+  function isOwnerOf(uint256 tokenId) public view returns (bool) {   
     bool result = msg.sender == ownerOf(tokenId);
     console.log('isOwnerOf: %s', result);
     return result;
   }
 
-  function updateNFTOf(uint256 tokenId, string memory imageURI) public payable {
+  function updateNFTOf(uint256 tokenId, string memory imageCID) public payable {
     require(isOwnerOf(tokenId), 'You are not owner of this NFT.');
 
     if (isExpiredOf(tokenId)) {
       console.log('This NFT is before the due date.');
-      updateNFTImageURIOf(tokenId, imageURI);
+      updateNFTImageCIDOf(tokenId, imageCID);
     } else {
       console.log('This NFT is after the due date.');
       if (msg.value >= 0.01 ether) {
         console.log('This NFT is after the due date.');
-        updateNFTImageURIOf(tokenId, imageURI);
+        updateNFTImageCIDOf(tokenId, imageCID);
       } else {
         console.log('You need to pay 0.01 ether.');
       }
     }
   }
 
-  function updateNFTImageURIOf(uint256 tokenId, string memory imageURI) private {
+  function updateNFTImageCIDOf(uint256 tokenId, string memory imageCID) private {
       _requireMinted(tokenId);
       NftAttributes memory nft = _grit3Nfts[tokenId];
-      nft.imageURL = imageURI;
+      nft.imageCID = imageCID;
       _grit3Nfts[tokenId] = nft;
   }
 
