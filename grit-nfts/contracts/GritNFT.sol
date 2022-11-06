@@ -30,6 +30,7 @@ contract GritNFT is ERC721Enumerable {
     address sender,
     uint256 tokenId,
     string name,
+    string imageSVG,
     string description,
     uint256 createdAt,
     uint256 dueDate
@@ -69,7 +70,7 @@ contract GritNFT is ERC721Enumerable {
 
     _tokenIds.increment();
 
-    emit NewNFTMinted(msg.sender, newTokenId, name, description, createdAt, dueDate);
+    emit NewNFTMinted(msg.sender, newTokenId, name, imageSVG, description, createdAt, dueDate);
   }
 
   function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
