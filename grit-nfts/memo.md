@@ -26,20 +26,24 @@
 
 ## memo
 
-- テストネットの通貨取得するの面倒
-  - ローカル環境ほしい
 - ipsf の反映遅い。upload 後に https://でアクセスすると 30m ぐらいは 504 bad gateway になる
   - これに限らず opensea などでもすぐデータが見られないことがある
   - 原因の判別つきづらい
+  - error にも書いてるように接続エラーが時折発生する。ファイルはメタデータのメインコンテンツになることが多いのでここに依存するのは UX 的にも開発体験的にも良くない気がする
 - コントラクトの処理はどんな時に競合状態になる？
 - .wait() は書き込み処理のときだけ待つために呼べばいい？
 - prettier の onSave が効かない
+- firestore への書き込みに制限つけるなら認証機構が必要
+- ethers の event を listen して、任意の event が発火した際に web ページを再リロードするとまた発火する
+  - https://ethereum.stackexchange.com/questions/117469/ethers-js-event-firing-question
 
 ## error
 
-app から mit 実行時に書きエラーがたまに出る
+IPFS へのアップロード後にすぐに読み取りにいくと以下のエラーが出る
 
 ```
 Error: block with cid bafybeiggpov7l3bokdcw4f66nvfjxiyu4rcocki6rg7ukshz4nn3lebdni no found
 
 ```
+
+→ 同じ内容の issue: https://github.com/web3-storage/web3.storage/issues/1810
