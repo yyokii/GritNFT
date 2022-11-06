@@ -1,4 +1,3 @@
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore'
 import { Box, Button, Input, Text, VStack } from '@chakra-ui/react'
 import FeaturesList from '../components/FeaturesList'
 import Hero from '../components/Hero'
@@ -6,12 +5,8 @@ import Layout from '../components/Layout'
 import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
 import NormalButton from '../components/common/NormalButton'
-import { Web3Storage, CIDString } from 'web3.storage'
 import GritNFT from '../grit-nfts.json'
-import html2canvas from 'html2canvas'
-import { firestore } from '../lib/firebase'
 import { NFTMetadata } from '../types/nftMetadata'
-import { uploadNFTMetadata } from '../lib/db'
 
 interface Window {
   ethereum?: ethers.providers.ExternalProvider
@@ -46,38 +41,11 @@ export default function Home() {
       const gritNFTContract = new ethers.Contract(CONTRACT_ADDRESS, GritNFT.abi, signer)
       setGritNFTContract(gritNFTContract)
 
-      const isConnected = await checkIfWalletIsConnected()
-      if (isConnected) {
-        // setupEventListener(gritNFTContract)
-      }
+      await checkIfWalletIsConnected()
     })()
   }, [])
 
-  // useEffect(() => {
-  //   if (account == null) {
-  //     return
-  //   }
-
-  //   const query = createBaseQueryOfNFTs(account)
-  //   const unsubscribe = onSnapshot(query, (querySnapshot) => {
-  //     const fetchedNFTMetadatas = querySnapshot.docs.map((doc) => {
-  //       return doc.data() as NFTMetadata
-  //     })
-  //     setUserNFTs(fetchedNFTMetadatas)
-
-  //     console.log('set user nfts: ', fetchedNFTMetadatas.length)
-  //   })
-  //   return unsubscribe
-  // }, [account])
-
   // Methods
-
-  // const createBaseQueryOfNFTs = (address: string) => {
-  //   return query(
-  //     collection(firestore, `users/${address}/nfts`),
-  //     orderBy('createdAt', 'desc'),
-  //   ).withConverter(nftMetadataConverter)
-  // }
 
   const checkIfWalletIsConnected = async (): Promise<boolean> => {
     const { ethereum } = window as Window
@@ -132,51 +100,6 @@ export default function Home() {
     }
   }
 
-  const setupEventListener = async (contract: ethers.Contract) => {
-    try {
-      const { ethereum } = window as Window
-      const provider = new ethers.providers.Web3Provider(ethereum)
-      const signer = provider.getSigner()
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, GritNFT.abi, signer)
-      // https://github.com/ethers-io/ethers.js/issues/2310#issuecomment-982755859
-      console.log('listeners', contract.listeners(newNFTMintedEventName))
-      provider.once('block', () => {
-        contract.on(
-          newNFTMintedEventName,
-          async (address, tokenId, name, description, imageCID, createdAt, dueDate) => {
-            alert(
-              `NFTが送信されました!\n
-                address: ${address}\n
-                tokenID: ${tokenId.toNumber()}\n
-                name: ${name.toString()}\n
-                description: ${description.toString()}\n
-                CID: ${imageCID.toString()}\n
-                createdAt: ${createdAt.toNumber()}\n
-                dueDate: ${dueDate.toNumber()}`,
-            )
-            // const requestMetadata = new NFTMetadata(
-            //   '',
-            //   tokenId.toNumber(),
-            //   name.toString(),
-            //   description.toString(),
-            //   imageCID.toString(),
-            //   createdAt.toNumber(),
-            //   dueDate.toNumber(),
-            // )
-            try {
-              // await uploadNFTMetadata(account, requestMetadata)
-            } catch (error) {
-              console.log(error)
-            }
-          },
-        )
-      })
-      console.log('Setup event listener')
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
   const requestContractToMint = async (metadata: NFTMetadata) => {
     setIsSending(true)
     try {
@@ -192,30 +115,6 @@ export default function Home() {
       setIsSending(false)
       console.log(error)
     }
-  }
-
-  const uploadToWeb3Storage = async (file: File): Promise<CIDString> => {
-    const client = new Web3Storage({ token: process.env.NEXT_PUBLIC_WEB3_STORAGE_API_KEY })
-    const cid = await client.put([file], {
-      name: 'nft grit image',
-      maxRetries: 3,
-    })
-    console.log('Uploaded to web3 storage. CID:', cid)
-    // const res = await client.get(rootCid)
-    // const files = await res.files()
-    // console.log('Uploaded file:', files[0])
-    return cid
-  }
-
-  const captureImage = async (): Promise<File> => {
-    const canvas = await html2canvas(document.getElementById('canvas'))
-    const image = canvas.toDataURL('image/png')
-    const blob: Blob = await fetch(image).then((r) => r.blob())
-
-    const currentTime = Date.now() / 1000
-    const file: File = new File([blob], `${currentTime}.png`, { type: 'image/png' })
-
-    return file
   }
 
   // Event handlers
@@ -240,9 +139,6 @@ export default function Home() {
       )
       console.log('start mint NFT')
       console.log('request metadata: ', requestMetadata)
-      // const imageFile = await captureImage()
-      // const imageCID = await uploadToWeb3Storage(imageFile)
-      // requestMetadata.imageCID = imageCID
       await requestContractToMint(requestMetadata)
       console.log('finish mint NFT')
 
@@ -269,7 +165,6 @@ export default function Home() {
       }
       const metadatas: NFTMetadata[] = await gritNFTContract.getMetadatas(data)
       console.log('getMetadatas', metadatas)
-      console.log('getMetadatas image', metadatas[0].imageSVG)
     } catch (error) {
       console.log(error)
     }

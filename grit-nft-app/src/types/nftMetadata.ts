@@ -31,30 +31,4 @@ class NFTMetadata {
   }
 }
 
-// const nftMetadataConverter = {
-//   toFirestore(data: WithFieldValue<NFTMetadata>): DocumentData {
-//     return {
-//       tokenID: data.tokenID,
-//       name: data.name,
-//       description: data.description,
-//       imageCID: data.imageCID,
-//       createdAt: data.createdAt,
-//       dueDate: data.dueDate,
-//     }
-//   },
-//   fromFirestore(snapshot: QueryDocumentSnapshot): NFTMetadata {
-//     const data = snapshot.data()
-//     const nftMetadata = new NFTMetadata(
-//       snapshot.id,
-//       data.tokenID,
-//       data.name,
-//       data.description,
-//       data.imageCID,
-//       data.createdAt,
-//       data.dueDate,
-//     )
-//     return nftMetadata
-//   },
-// }
-
 export { NFTMetadata }
