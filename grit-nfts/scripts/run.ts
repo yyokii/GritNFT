@@ -6,16 +6,11 @@ async function runLocal() {
     await nftContract.deployed()
     console.log('Contract deployed to:', nftContract.address)
 
-    let txn = await nftContract.makeNFT(
-      'demo name',
-      'demo description',
-      'demo image url',
-      1643518610,
-    )
+    let txn = await nftContract.makeNFT('demo name', 'demo description', 1672458033)
     await txn.wait()
 
-    await nftContract.tokenURI(0)
     await nftContract.isExpiredOf(0)
+    await nftContract.tokenURI(0)
 
     process.exit(0)
   } catch (error) {
