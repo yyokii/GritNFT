@@ -1,3 +1,4 @@
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore'
 import { Box, Button, Input, Text, VStack } from '@chakra-ui/react'
 import FeaturesList from '../components/FeaturesList'
 import Hero from '../components/Hero'
@@ -8,41 +9,81 @@ import NormalButton from '../components/common/NormalButton'
 import { Web3Storage, CIDString } from 'web3.storage'
 import GritNFT from '../grit-nfts.json'
 import html2canvas from 'html2canvas'
+import { firestore } from '../lib/firebase'
+import { NFTMetadata } from '../types/nftMetadata'
+import { uploadNFTMetadata } from '../lib/db'
 
 interface Window {
   ethereum?: ethers.providers.ExternalProvider
 }
 
-// class GritNFTMetadata {
-//   name: string
-//   description: string
-//   imageCID: string
-// }
-
-const CONTRACT_ADDRESS = '0x7100F290D619739D92559112337389E08C570736'
+const CONTRACT_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
 
 export default function Home() {
   const [account, setAccount] = useState<string>(null)
 
   // NFT metadata
-  const [nftTitle, setnftTitle] = useState<string>('')
+  const [nftName, setnftName] = useState<string>('')
   const [nftDescription, setNftDescription] = useState<string>('')
   const [nftDueDate, setNftDueDate] = useState<number>(0)
 
+  // User's data
+  const [userNFTs, setUserNFTs] = useState<NFTMetadata[]>([])
+
   const [isSending, setIsSending] = useState(false)
+  const [gritNFTContract, setGritNFTContract] = useState<ethers.Contract>(null)
+
+  const newNFTMintedEventName = 'NewNFTMinted'
+
+  // Effect
 
   useEffect(() => {
     ;(async () => {
-      await checkIfWalletIsConnected()
-      // await checkNetwork()
+      // Set up contract
+      const { ethereum } = window as Window
+      const provider = new ethers.providers.Web3Provider(ethereum)
+      const signer = provider.getSigner()
+      const gritNFTContract = new ethers.Contract(CONTRACT_ADDRESS, GritNFT.abi, signer)
+      setGritNFTContract(gritNFTContract)
+
+      const isConnected = await checkIfWalletIsConnected()
+      if (isConnected) {
+        // setupEventListener(gritNFTContract)
+      }
     })()
   }, [])
 
-  const checkIfWalletIsConnected = async () => {
+  // useEffect(() => {
+  //   if (account == null) {
+  //     return
+  //   }
+
+  //   const query = createBaseQueryOfNFTs(account)
+  //   const unsubscribe = onSnapshot(query, (querySnapshot) => {
+  //     const fetchedNFTMetadatas = querySnapshot.docs.map((doc) => {
+  //       return doc.data() as NFTMetadata
+  //     })
+  //     setUserNFTs(fetchedNFTMetadatas)
+
+  //     console.log('set user nfts: ', fetchedNFTMetadatas.length)
+  //   })
+  //   return unsubscribe
+  // }, [account])
+
+  // Methods
+
+  // const createBaseQueryOfNFTs = (address: string) => {
+  //   return query(
+  //     collection(firestore, `users/${address}/nfts`),
+  //     orderBy('createdAt', 'desc'),
+  //   ).withConverter(nftMetadataConverter)
+  // }
+
+  const checkIfWalletIsConnected = async (): Promise<boolean> => {
     const { ethereum } = window as Window
     if (!ethereum) {
       console.log('Make sure you have MetaMask!')
-      return
+      return false
     } else {
       console.log('We have the ethereum object', ethereum)
     }
@@ -53,9 +94,10 @@ export default function Home() {
       const account = accounts[0]
       console.log('Found an authorized account:', account)
       setAccount(account)
-      setupEventListener()
+      return true
     } else {
       console.log('No authorized account found')
+      return false
     }
   }
 
@@ -70,7 +112,7 @@ export default function Home() {
     }
   }
 
-  const connectWallet = async () => {
+  const requestToConnectWallet = async () => {
     setIsSending(true)
     try {
       const { ethereum } = window as Window
@@ -82,73 +124,70 @@ export default function Home() {
       const accounts = await ethereum.request({
         method: 'eth_requestAccounts',
       })
-      console.log('Connected', accounts[0])
-      setAccount(accounts[0])
+      console.log('cuccrent accout', accounts[0])
       setIsSending(false)
-      setupEventListener()
     } catch (error) {
       setIsSending(false)
       console.log(error)
     }
   }
 
-  const setupEventListener = async () => {
+  const setupEventListener = async (contract: ethers.Contract) => {
     try {
       const { ethereum } = window as Window
-      if (ethereum) {
-        const provider = new ethers.providers.Web3Provider(ethereum)
-        const signer = provider.getSigner()
-        const connectedContract = new ethers.Contract(CONTRACT_ADDRESS, GritNFT.abi, signer)
-
-        connectedContract.on('NewNFTMinted', (from, tokenId) => {
-          console.log(from, tokenId.toNumber())
-          alert(
-            `NFTが送信されました!\nNFT へのリンクはこちらです: https://testnets.opensea.io/assets/${CONTRACT_ADDRESS}/${tokenId.toNumber()}\nOpenSeaに表示されるまで最大で10分かかることがあります。`,
-          )
-        })
-        console.log('Setup event listener')
-      }
+      const provider = new ethers.providers.Web3Provider(ethereum)
+      const signer = provider.getSigner()
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, GritNFT.abi, signer)
+      // https://github.com/ethers-io/ethers.js/issues/2310#issuecomment-982755859
+      console.log('listeners', contract.listeners(newNFTMintedEventName))
+      provider.once('block', () => {
+        contract.on(
+          newNFTMintedEventName,
+          async (address, tokenId, name, description, imageCID, createdAt, dueDate) => {
+            alert(
+              `NFTが送信されました!\n
+                address: ${address}\n
+                tokenID: ${tokenId.toNumber()}\n
+                name: ${name.toString()}\n
+                description: ${description.toString()}\n
+                CID: ${imageCID.toString()}\n
+                createdAt: ${createdAt.toNumber()}\n
+                dueDate: ${dueDate.toNumber()}`,
+            )
+            // const requestMetadata = new NFTMetadata(
+            //   '',
+            //   tokenId.toNumber(),
+            //   name.toString(),
+            //   description.toString(),
+            //   imageCID.toString(),
+            //   createdAt.toNumber(),
+            //   dueDate.toNumber(),
+            // )
+            try {
+              // await uploadNFTMetadata(account, requestMetadata)
+            } catch (error) {
+              console.log(error)
+            }
+          },
+        )
+      })
+      console.log('Setup event listener')
     } catch (error) {
       console.log(error)
     }
   }
 
-  const makeNFT = async () => {
+  const requestContractToMint = async (metadata: NFTMetadata) => {
     setIsSending(true)
     try {
-      console.log('start mint NFT')
-      console.log('nftTitle', nftTitle)
-      console.log('nftDescription', nftDescription)
-      console.log('nftDueDate', nftDueDate)
-      const imageFile = await captureImage()
-      const imageCID = await uploadToWeb3Storage(imageFile)
-      await requestContractToMint(imageCID)
-      // TODO: save NFT metadata to DB
-      console.log('finish mint NFT')
+      const transaction = await gritNFTContract.makeNFT(
+        metadata.name,
+        metadata.description,
+        metadata.dueDate,
+      )
+      await transaction.wait()
+      console.log(`${metadata} is minted`)
       setIsSending(false)
-    } catch (error) {
-      setIsSending(false)
-      console.log(error)
-    }
-  }
-
-  const requestContractToMint = async (ipfs: CIDString) => {
-    setIsSending(true)
-    try {
-      const { ethereum } = window as Window
-      if (ethereum) {
-        const provider = new ethers.providers.Web3Provider(ethereum)
-        const signer = provider.getSigner()
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, GritNFT.abi, signer)
-        // stateを参照ではなく、オブジェクトにしてそれを渡していく方が良さそう、値変わるので
-        const transaction = await contract.makeNFT(nftTitle, nftDescription, ipfs, nftDueDate)
-        await transaction.wait()
-        console.log(`${ipfs} minted!`)
-        // TOOD: uplodat metadata to firestore for caching
-        setIsSending(false)
-      } else {
-        console.log('Ethereum object not found')
-      }
     } catch (error) {
       setIsSending(false)
       console.log(error)
@@ -179,18 +218,59 @@ export default function Home() {
     return file
   }
 
-  const demoUpload = async () => {
+  // Event handlers
+
+  const onClickConnectWallet = async () => {
+    await requestToConnectWallet()
+    await checkIfWalletIsConnected()
+  }
+
+  const makeNFT = async () => {
     setIsSending(true)
     try {
-      console.log('start demo upload')
-      const file = await captureImage()
-      const cid = await uploadToWeb3Storage(file)
-      console.log('finish demo upload')
-      console.log(cid)
+      const requestMetadata = new NFTMetadata(
+        '',
+        -1,
+        nftName,
+        nftDescription,
+        '',
+        -1,
+        nftDueDate,
+        0,
+      )
+      console.log('start mint NFT')
+      console.log('request metadata: ', requestMetadata)
+      // const imageFile = await captureImage()
+      // const imageCID = await uploadToWeb3Storage(imageFile)
+      // requestMetadata.imageCID = imageCID
+      await requestContractToMint(requestMetadata)
+      console.log('finish mint NFT')
+
+      // データの一覧を取得
+      const userTokenIds = await gritNFTContract.getTokenIds(account)
+      console.log('userTokenIds', userTokenIds)
+      const metadatas: NFTMetadata[] = await gritNFTContract.getMetadatas(userTokenIds)
+      console.log('metadatas', metadatas)
+
       setIsSending(false)
     } catch (error) {
-      console.log('error demo upload')
       setIsSending(false)
+      console.log(error)
+    }
+  }
+
+  const demo = async () => {
+    try {
+      const data = await gritNFTContract.getTokenIds(account)
+      console.log('getTokenIds', data)
+      for (let i = 0; i < data.length; i++) {
+        const tokenId = data[i].toNumber()
+        console.log('tokenId', tokenId)
+      }
+      const metadatas: NFTMetadata[] = await gritNFTContract.getMetadatas(data)
+      console.log('getMetadatas', metadatas)
+      console.log('getMetadatas image', metadatas[0].imageSVG)
+    } catch (error) {
       console.log(error)
     }
   }
@@ -204,16 +284,20 @@ export default function Home() {
         {account ? (
           <Text color={'green.500'}>Connected to {account}</Text>
         ) : (
-          <NormalButton title='Connect wallet' isSending={isSending} onClick={connectWallet} />
+          <NormalButton
+            title='Connect wallet'
+            isSending={isSending}
+            onClick={onClickConnectWallet}
+          />
         )}
         <Box>
           <VStack>
             <Input
               id='title'
               placeholder='title'
-              value={nftTitle}
+              value={nftName}
               onChange={(e) => {
-                setnftTitle(e.target.value)
+                setnftName(e.target.value)
               }}
               required
             />
@@ -241,10 +325,11 @@ export default function Home() {
         </Box>
         <Box id='canvas'>
           <Text color={'red.500'} m={8}>
-            This is {nftTitle} NFT
+            This is {nftName} NFT
           </Text>
         </Box>
-        <Button onClick={makeNFT}>Capture</Button>
+        <Button onClick={makeNFT}>Create NFT</Button>
+        <Button onClick={demo}>Demo</Button>
       </VStack>
     </Layout>
   )
