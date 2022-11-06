@@ -12,7 +12,7 @@ interface Window {
   ethereum?: ethers.providers.ExternalProvider
 }
 
-const CONTRACT_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+const CONTRACT_ADDRESS = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0'
 
 export default function Home() {
   const [account, setAccount] = useState<string>(null)
@@ -155,7 +155,32 @@ export default function Home() {
       }
       console.log('nftMetadatas', nftMetadatas)
       setUserNFTs(nftMetadatas)
+      setIsSending(false)
     } catch (error) {
+      setIsSending(false)
+      console.log(error)
+    }
+  }
+
+  const onClickAchieve = async (data: NFTMetadata) => {
+    setIsSending(true)
+    try {
+      // TODO: 期限の判別をより厳密にするならcontractのfunctionをcallした方がいい
+      if (data.isExpired) {
+        const transaction = await gritNFTContract.updateNFTOf(data.tokenID, {
+          value: ethers.utils.parseUnits('0.01', 'ether'),
+        })
+        await transaction.wait()
+        console.log(`expided tokenID(${data.tokenID}) is achieved`)
+      } else {
+        const transaction = await gritNFTContract.updateNFTOf(data.tokenID)
+        await transaction.wait()
+        console.log(`tokenID(${data.tokenID}) is achieved`)
+      }
+      setIsSending(false)
+      fetchUserAllNFTs()
+    } catch (error) {
+      setIsSending(false)
       console.log(error)
     }
   }
@@ -216,10 +241,17 @@ export default function Home() {
           <SimpleGrid columns={{ sm: 2, md: 3 }} spacing='40px'>
             {userNFTs.map((data) => (
               <Box key={data.tokenID}>
-                <Text>{data.name}</Text>
+                <Text>{data.dispyaStatus()}</Text>
                 <Image src={data.imageSVG} alt={data.name} />
                 <Text>{data.description}</Text>
-                <Text>{data.dueDate}</Text>
+                <Text>{data.displayDueDate()}</Text>
+                {!data.isAchieved() && (
+                  <NormalButton
+                    title='Achieved!'
+                    isSending={isSending}
+                    onClick={async () => await onClickAchieve(data)}
+                  />
+                )}
               </Box>
             ))}
           </SimpleGrid>

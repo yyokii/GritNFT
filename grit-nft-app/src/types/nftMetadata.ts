@@ -27,6 +27,13 @@ class NFTMetadata {
     this.achievedAt = achievedAt
   }
 
+  /**
+   * Create NFTMetadata from the NFT contract response
+   *
+   * @param json: NFT contract response
+   * @param tokenID: NFT token ID
+   * @returns NFTMetadata
+   */
   static fromJSON(json: any, tokenID: number): NFTMetadata {
     const createdAt: number = (json.createdAt as BigNumber).toNumber()
     const dueDate: number = (json.dueDate as BigNumber).toNumber()
@@ -41,6 +48,28 @@ class NFTMetadata {
       dueDate,
       achievedAt,
     )
+  }
+
+  isExpired(): boolean {
+    return this.dueDate < Date.now() / 1000
+  }
+
+  dispyaStatus(): string {
+    if (this.isAchieved()) {
+      return 'Achieved'
+    } else if (this.isExpired()) {
+      return 'Expired'
+    } else {
+      return 'In Progress'
+    }
+  }
+
+  displayDueDate(): string {
+    return new Date(this.dueDate * 1000).toLocaleDateString()
+  }
+
+  isAchieved(): boolean {
+    return this.achievedAt > 0
   }
 }
 

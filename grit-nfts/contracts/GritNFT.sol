@@ -155,9 +155,6 @@ contract GritNFT is ERC721Enumerable {
     require(isOwnerOf(tokenId), 'You are not owner of this NFT.');
 
     if (isExpiredOf(tokenId)) {
-      console.log('This NFT is before the due date.');
-      updateNFTDataOf(tokenId);
-    } else {
       console.log('This NFT is after the due date.');
       if (msg.value >= 0.01 ether) {
         console.log('This NFT is after the due date.');
@@ -165,6 +162,9 @@ contract GritNFT is ERC721Enumerable {
       } else {
         console.log('You need to pay 0.01 ether.');
       }
+    } else {
+      console.log('This NFT is before the due date.');
+      updateNFTDataOf(tokenId);
     }
   }
 
@@ -172,12 +172,7 @@ contract GritNFT is ERC721Enumerable {
     _requireMinted(tokenId);
     NftAttributes memory nft = _grit3Nfts[tokenId];
     nft.achievedAt = block.timestamp;
-    nft.imageSVG = generateSVG(
-      nft.name,
-      nft.createdAt,
-      nft.dueDate,
-      nft.achievedAt
-    );
+    nft.imageSVG = generateSVG(nft.name, nft.createdAt, nft.dueDate, nft.achievedAt);
     _grit3Nfts[tokenId] = nft;
   }
 
