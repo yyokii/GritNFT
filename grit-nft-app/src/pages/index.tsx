@@ -1,4 +1,4 @@
-import { Box, Button, Input, Text, VStack } from '@chakra-ui/react'
+import { Box, Button, Image, Input, SimpleGrid, Text, VStack } from '@chakra-ui/react'
 import FeaturesList from '../components/FeaturesList'
 import Hero from '../components/Hero'
 import Layout from '../components/Layout'
@@ -127,26 +127,12 @@ export default function Home() {
   const makeNFT = async () => {
     setIsSending(true)
     try {
-      const requestMetadata = new NFTMetadata(
-        '',
-        -1,
-        nftName,
-        nftDescription,
-        '',
-        -1,
-        nftDueDate,
-        0,
-      )
+      const requestMetadata = new NFTMetadata(-1, nftName, nftDescription, '', -1, nftDueDate, 0)
       console.log('start mint NFT')
       console.log('request metadata: ', requestMetadata)
       await requestContractToMint(requestMetadata)
       console.log('finish mint NFT')
-
-      // データの一覧を取得
-      const userTokenIds = await gritNFTContract.getTokenIds(account)
-      console.log('userTokenIds', userTokenIds)
-      const metadatas: NFTMetadata[] = await gritNFTContract.getMetadatas(userTokenIds)
-      console.log('metadatas', metadatas)
+      fetchUserAllNFTs()
 
       setIsSending(false)
     } catch (error) {
@@ -155,19 +141,27 @@ export default function Home() {
     }
   }
 
-  const demo = async () => {
+  const fetchUserAllNFTs = async () => {
+    setIsSending(true)
     try {
-      const data = await gritNFTContract.getTokenIds(account)
-      console.log('getTokenIds', data)
-      for (let i = 0; i < data.length; i++) {
-        const tokenId = data[i].toNumber()
-        console.log('tokenId', tokenId)
+      const tokenIDs = await gritNFTContract.getTokenIds(account)
+      console.log('getTokenIds', tokenIDs.length)
+      const metadatas = await gritNFTContract.getMetadatas(tokenIDs)
+
+      const nftMetadatas: NFTMetadata[] = []
+      for (let i = 0; i < tokenIDs.length; i++) {
+        const data = NFTMetadata.fromJSON(metadatas[i], tokenIDs[i])
+        nftMetadatas.push(data)
       }
-      const metadatas: NFTMetadata[] = await gritNFTContract.getMetadatas(data)
-      console.log('getMetadatas', metadatas)
+      console.log('nftMetadatas', nftMetadatas)
+      setUserNFTs(nftMetadatas)
     } catch (error) {
       console.log(error)
     }
+  }
+
+  const demo = async () => {
+    fetchUserAllNFTs()
   }
 
   return (
@@ -218,10 +212,17 @@ export default function Home() {
             />
           </VStack>
         </Box>
-        <Box id='canvas'>
-          <Text color={'red.500'} m={8}>
-            This is {nftName} NFT
-          </Text>
+        <Box>
+          <SimpleGrid columns={{ sm: 2, md: 3 }} spacing='40px'>
+            {userNFTs.map((data) => (
+              <Box key={data.tokenID}>
+                <Text>{data.name}</Text>
+                <Image src={data.imageSVG} alt={data.name} />
+                <Text>{data.description}</Text>
+                <Text>{data.dueDate}</Text>
+              </Box>
+            ))}
+          </SimpleGrid>
         </Box>
         <Button onClick={makeNFT}>Create NFT</Button>
         <Button onClick={demo}>Demo</Button>
