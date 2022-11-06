@@ -2,6 +2,9 @@
 
 ## Web3 Hackathon 2022
 
+⚠️ Goerli環境で動く想定ですが、現状デプロイが完了していません。
+ローカル環境での動作は確認済みであり、デモ動画もローカル環境でのものです。
+
 ### プロダクト概要
 
 Grit NFT はこれからやりたいことを NFT 化することで、モチベーションアップを図るアプリケーションです。例えば、1 ヶ月で 5 キロ痩せようと思っても誰かにお尻を叩かれたり期限がないとなかなか達成することが難しいです。このアプリではやりたいことと期限を宣言して NFT を作成できます。そして設定した期限以内に達成した場合はガス代のみで NFT を更新（達成状態に更新）することができますが、期限を過ぎると追加の費用がかかります。せっかく NFT を作ったのだから達成したいというモチベーションと、期限内に終わらせることで NFT を更新したいというモチベーションがユーザーに生まれることでやり抜く力「Grit」を高めることができます。
@@ -13,7 +16,6 @@ Grit NFT はこれからやりたいことを NFT 化することで、モチベ
 - hardhat
 - Next.js
 - ethers.js
--
 
 ### Blockchain
 
@@ -61,7 +63,7 @@ npx hardhat run scripts/deploy.ts --network goerli
 
 and update the contract address in App.
 
-### Start app devlop environment
+### Start devlop environment app 
 
 in grit-nft-app directory
 
