@@ -38,6 +38,13 @@ https://www.blockchain.com/eth/address/0xc0F43D539883532d0A5099ebBc63F2C6A4B70ec
 
 下記の「Deploy to local network」をご覧下さい。
 
+## Plan
+今後の開発予定
+
+* Fix UI
+* Fix NFT image
+* and ...
+
 ## Develop
 
 ### Deploy to local network
