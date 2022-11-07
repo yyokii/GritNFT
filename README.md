@@ -28,6 +28,8 @@ Grit NFT はこれからやりたいことを NFT 化することで、モチベ
 
 Ethereum
 
+https://www.blockchain.com/eth/address/0xc0F43D539883532d0A5099ebBc63F2C6A4B70ecC
+
 ### その他の file
 
 - [Frontend App のリポジトリ](https://github.com/yyokii/GritNFTApp)
