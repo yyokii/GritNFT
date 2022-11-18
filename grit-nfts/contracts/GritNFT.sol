@@ -21,9 +21,6 @@ contract GritNFT is ERC721Enumerable {
 
   using Counters for Counters.Counter;
 
-  string baseSvg =
-    "<svg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMinYMin meet' viewBox='0 0 350 350'><style>.base { fill: white; font-family: serif; font-size: 24px; }</style><rect width='100%' height='100%' fill='black' /><text x='50%' y='50%' class='base' dominant-baseline='middle' text-anchor='middle'>";
-
   Counters.Counter private _tokenIds;
 
   event NewNFTMinted(
@@ -48,7 +45,7 @@ contract GritNFT is ERC721Enumerable {
     string memory description,
     uint256 dueDate
   ) public {
-    // TODO: dueDate should be in the future
+    // TODO: check dueDate is in the future
 
     uint256 newTokenId = _tokenIds.current();
     uint256 createdAt = block.timestamp;
@@ -56,7 +53,7 @@ contract GritNFT is ERC721Enumerable {
     _safeMint(msg.sender, newTokenId);
     console.log('An NFT w/ ID %s has been minted to %s', newTokenId, msg.sender);
 
-    string memory imageSVG = generateSVG(name, createdAt, dueDate, 0);
+    string memory imageSVG = generateSVG(name, 0);
     NftAttributes memory attributes = NftAttributes(
       name,
       imageSVG,
@@ -111,14 +108,20 @@ contract GritNFT is ERC721Enumerable {
     return output;
   }
 
-  function generateSVG(
-    string memory name,
-    uint256 createdAt,
-    uint256 dueDate,
-    uint256 achievedAt
-  ) private view returns (string memory) {
-    string memory status = achievedAt == 0 ? 'In progress' : 'Achieved';
-    string memory svg = string(abi.encodePacked(baseSvg, status, ' ', name, '</text></svg>'));
+  function generateSVG(string memory name, uint256 achievedAt)
+    private
+    pure
+    returns (string memory)
+  {
+    string memory svg = '';
+    if (achievedAt == 0) {
+      // not achieved
+      svg = _buildNotAchievedImage(name);
+    } else {
+      // achieved
+      svg = _buildAchievedImage(name);
+    }
+
     string memory encodedSvg = Base64.encode(bytes(svg));
     return string(abi.encodePacked('data:image/svg+xml;base64,', encodedSvg));
   }
@@ -173,7 +176,7 @@ contract GritNFT is ERC721Enumerable {
     _requireMinted(tokenId);
     NftAttributes memory nft = _grit3Nfts[tokenId];
     nft.achievedAt = block.timestamp;
-    nft.imageSVG = generateSVG(nft.name, nft.createdAt, nft.dueDate, nft.achievedAt);
+    nft.imageSVG = generateSVG(nft.name, nft.achievedAt);
     _grit3Nfts[tokenId] = nft;
   }
 
@@ -182,5 +185,39 @@ contract GritNFT is ERC721Enumerable {
     bool result = nft.dueDate < block.timestamp;
     console.log('isExpiredOf: %s', result);
     return result;
+  }
+
+  function _buildNotAchievedImage(string memory content) private pure returns (string memory) {
+    string memory backgroundEmoji = unicode'💭';
+    return
+      string(
+        abi.encodePacked(
+          "<svg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMinYMin meet' viewBox='0 0 350 350'><defs><linearGradient id='a' gradientTransform='rotate(45)'><stop offset='.3' stop-color='#ffe4e1'/><stop offset='.8' stop-color='#ffe4e1'/></linearGradient></defs><rect width='100%' height='100%' stroke='url(#a)' stroke-width='10%' fill='none'/><rect x='5%' y='5%' width='90%' height='90%' fill='#fff'/><text font-size='300' x='50%' y='65%' dominant-baseline='middle' text-anchor='middle' fill-opacity='.5'>",
+          backgroundEmoji,
+          "</text><text fill='gray' font-family='serif' font-size='32' font-weight='bold' x='5%' y='11%' dominant-baseline='middle'>"
+          'In progress',
+          "</text><text x='50%' y='50%' font-weight='bold' dominant-baseline='middle' text-anchor='middle' style='fill:#000;font-family:monospace;font-size:18px'>"
+          "<tspan x='50%' y='50%'>",
+          content,
+          '</tspan></text></svg>'
+        )
+      );
+  }
+
+  function _buildAchievedImage(string memory content) private pure returns (string memory) {
+    string memory backgroundEmoji = unicode'👑';
+    return
+      string(
+        abi.encodePacked(
+          "<svg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMinYMin meet' viewBox='0 0 350 350'><defs><linearGradient id='a' gradientTransform='rotate(45)'><stop offset='.3' stop-color='gold'/><stop offset='.8' stop-color='pink'/></linearGradient></defs><rect width='100%' height='100%' stroke='url(#a)' stroke-width='10%' fill='none'/><rect x='5%' y='5%' width='90%' height='90%' fill='#fff'/><text font-size='300' x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill-opacity='.5'>",
+          backgroundEmoji,
+          "</text><text fill='#3cb371' font-family='serif' font-size='32' font-weight='bold' x='5%' y='11%' dominant-baseline='middle'>",
+          'Achieved!',
+          "</text><text x='50%' y='50%' font-weight='bold' dominant-baseline='middle' text-anchor='middle' style='fill:#000;font-family:monospace;font-size:18px'>",
+          "<tspan x='50%' y='50%'>",
+          content,
+          '</tspan></text></svg>'
+        )
+      );
   }
 }
